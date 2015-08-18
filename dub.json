@@ -1,0 +1,10 @@
+{
+	"name": "gcm",
+	"description": "Google Cloud Messaging (GCM) for D",
+	"copyright": "Copyright © 2015, sigod",
+	"authors": ["sigod"],
+	"dependencies": {
+	},
+
+	"targetType": "sourceLibrary"
+}
