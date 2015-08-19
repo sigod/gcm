@@ -14,16 +14,51 @@ private {
 
 struct GCMRequest
 {
+	/// This parameter specifies the recipient of a message.
 	string to;
 
+	/// This parameter specifies a list of devices (registration tokens, or IDs) receiving a multicast message.
+	string[] registration_ids;
+
+	/// This parameter identifies a group of messages that can be collapsed.
+	string collapse_key;
+
+	//TODO: use enum
+	/// Sets the priority of the message. Valid values are "normal" and "high".
+	string priority;
+
+	//TODO: must be nullable
+	/// When a notification or message is sent and this is set to true, an inactive client app is awoken.
+	bool content_available;
+
+	/// When this parameter is set to true, it indicates that the message should not be sent until the device becomes active.
+	bool delay_while_idle;
+
+	/// This parameter specifies how long (in seconds) the message should be kept in GCM storage if the device is offline.
+	int time_to_live = -1;
+
+	/**
+		This parameter specifies the package name of the application where
+		the registration tokens must match in order to receive the message.
+	*/
+	string restricted_package_name;
+
+	/// This parameter, when set to true, allows developers to test a request without actually sending a message.
 	bool dry_run;
 
+	/// This parameter specifies the key-value pairs of the notification payload.
 	Nullable!GCMNotification notification;
 
+	/// This parameter specifies the key-value pairs of the message's payload.
 	JSONValue data;
 
 	package JSONValue toJSON()
 	{
+		import core.time;
+
+		assert(registration_ids.length <= 1000);
+		assert(time_to_live <= 4.weeks.total!"seconds");
+
 		JSONValue msg = ["to": to];
 
 		if (dry_run)
