@@ -30,7 +30,7 @@ struct GCMRequest
 			msg.object["dry_run"] = true;
 
 		if (!notification.isNull)
-			msg.object["notification"] = ["title": notification.title, "icon": notification.icon];
+			msg.object["notification"] = notification.toJSON();
 
 		if (!data.isNull)
 			msg.object["data"] = data;
@@ -81,7 +81,7 @@ struct GCMNotification
 	/// Indicates the string value to replace format specifiers in title string for localization.
 	string[] title_loc_args;
 
-	JSONValue toJSON()
+	package JSONValue toJSON()
 	{
 		assert(icon.length, "icon is required");
 
