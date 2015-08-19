@@ -80,6 +80,38 @@ struct GCMNotification
 
 	/// Indicates the string value to replace format specifiers in title string for localization.
 	string[] title_loc_args;
+
+	JSONValue toJSON()
+	{
+		assert(icon.length, "icon is required");
+
+		import std.traits : isSomeFunction;
+		import std.algorithm : endsWith;
+
+		string[string] object;
+
+		foreach (field_name; __traits(allMembers, typeof(this))) {
+			alias field = Alias!(__traits(getMember, typeof(this), field_name));
+
+			static if (!isSomeFunction!field) {
+				if (field.length) {
+					static if (is(typeof(field) == string)) {
+						static if (field_name.endsWith('_'))
+							object[field_name[0 .. $-1]] = field;
+						else
+							object[field_name] = field;
+					}
+					else static if (is(typeof(field) == string[])) {
+						// just speculation for now, can't find usage examples
+						object[field_name] = JSONValue(field).toString();
+					}
+					else static assert(false, field_name ~ " has unsupported type");
+				}
+			}
+		}
+
+		return JSONValue(object);
+	}
 }
 
 class GCM
@@ -106,3 +138,7 @@ class GCM
 		post("https://gcm-http.googleapis.com/gcm/send", request.toJSON().toString(), client);
 	}
 }
+
+private:
+
+alias Alias(alias a) = a;
