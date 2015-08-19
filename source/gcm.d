@@ -41,8 +41,45 @@ struct GCMRequest
 
 struct GCMNotification
 {
+	/// Indicates notification title. This field is not visible on iOS phones and tablets.
 	string title;
+
+	/// Indicates notification body text.
+	string body_;
+
+	/// Indicates notification icon. On Android: sets value to `myicon` for drawable resource `myicon.png`.
 	string icon;
+
+	/// Indicates sound to be played. Supports only default currently.
+	string sound;
+
+	/// Indicates the badge on client app home icon.
+	string badge;
+
+	/**
+		Indicates whether each notification message results in a new entry on the notification center on Android.
+		If not set, each request creates a new notification. If set, and a notification with the same tag is already
+		being shown, the new notification replaces the existing one in notification center.
+	*/
+	string tag;
+
+	/// Indicates color of the icon, expressed in #rrggbb format
+	string color;
+
+	/// The action associated with a user click on the notification.
+	string click_action;
+
+	/// Indicates the key to the body string for localization.
+	string body_loc_key;
+
+	/// Indicates the string value to replace format specifiers in body string for localization.
+	string[] body_loc_args;
+
+	/// Indicates the key to the title string for localization.
+	string title_loc_key;
+
+	/// Indicates the string value to replace format specifiers in title string for localization.
+	string[] title_loc_args;
 }
 
 class GCM
