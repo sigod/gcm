@@ -54,7 +54,7 @@ struct GCMRequest
 
 	package JSONValue toJSON()
 	{
-		import core.time;
+		import core.time : weeks;
 
 		assert(registration_ids.length <= 1000);
 		assert(time_to_live <= 4.weeks.total!"seconds");
