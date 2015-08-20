@@ -32,9 +32,8 @@ struct GCMRequest
 	/// Sets the priority of the message. Valid values are "normal" and "high".
 	GCMPriority priority;
 
-	//TODO: must be nullable
 	/// When a notification or message is sent and this is set to true, an inactive client app is awoken.
-	bool content_available;
+	Nullable!bool content_available;
 
 	/// When this parameter is set to true, it indicates that the message should not be sent until the device becomes active.
 	bool delay_while_idle;
