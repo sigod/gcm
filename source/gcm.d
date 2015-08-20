@@ -12,6 +12,12 @@ private {
 	import std.typecons : Nullable;
 }
 
+enum GCMPriority
+{
+	normal = "normal",
+	high = "high"
+}
+
 struct GCMRequest
 {
 	/// This parameter specifies the recipient of a message.
@@ -23,9 +29,8 @@ struct GCMRequest
 	/// This parameter identifies a group of messages that can be collapsed.
 	string collapse_key;
 
-	//TODO: use enum
 	/// Sets the priority of the message. Valid values are "normal" and "high".
-	string priority;
+	GCMPriority priority;
 
 	//TODO: must be nullable
 	/// When a notification or message is sent and this is set to true, an inactive client app is awoken.
