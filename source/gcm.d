@@ -8,6 +8,7 @@
 module gcm;
 
 private {
+	import core.time : weeks;
 	import std.json;
 	import std.typecons : Nullable;
 }
@@ -39,7 +40,7 @@ struct GCMRequest
 	bool delay_while_idle;
 
 	/// This parameter specifies how long (in seconds) the message should be kept in GCM storage if the device is offline.
-	int time_to_live = -1;
+	int time_to_live = weeks(4).total!"seconds";
 
 	/**
 		This parameter specifies the package name of the application where
