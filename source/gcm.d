@@ -51,27 +51,6 @@ struct GCMRequest
 
 	/// This parameter specifies the key-value pairs of the message's payload.
 	JSONValue data;
-
-	package JSONValue toJSON()
-	{
-		import core.time : weeks;
-
-		assert(registration_ids.length <= 1000);
-		assert(time_to_live <= 4.weeks.total!"seconds");
-
-		JSONValue msg = ["to": to];
-
-		if (dry_run)
-			msg.object["dry_run"] = true;
-
-		if (!notification.isNull)
-			msg.object["notification"] = notification.toJSON();
-
-		if (!data.isNull)
-			msg.object["data"] = data;
-
-		return msg;
-	}
 }
 
 struct GCMNotification
@@ -115,38 +94,6 @@ struct GCMNotification
 
 	/// Indicates the string value to replace format specifiers in title string for localization.
 	string[] title_loc_args;
-
-	package JSONValue toJSON()
-	{
-		assert(icon.length, "icon is required");
-
-		import std.traits : isSomeFunction;
-		import std.algorithm : endsWith;
-
-		string[string] object;
-
-		foreach (field_name; __traits(allMembers, typeof(this))) {
-			alias field = Alias!(__traits(getMember, typeof(this), field_name));
-
-			static if (!isSomeFunction!field) {
-				if (field.length) {
-					static if (is(typeof(field) == string)) {
-						static if (field_name.endsWith('_'))
-							object[field_name[0 .. $-1]] = field;
-						else
-							object[field_name] = field;
-					}
-					else static if (is(typeof(field) == string[])) {
-						// just speculation for now, can't find usage examples
-						object[field_name] = JSONValue(field).toString();
-					}
-					else static assert(false, field_name ~ " has unsupported type");
-				}
-			}
-		}
-
-		return JSONValue(object);
-	}
 }
 
 class GCM
@@ -170,10 +117,68 @@ class GCM
 		client.addRequestHeader("Content-Type", "application/json");
 		client.addRequestHeader("Authorization", "key=" ~ m_key);
 
-		post("https://gcm-http.googleapis.com/gcm/send", request.toJSON().toString(), client);
+		post("https://gcm-http.googleapis.com/gcm/send", convert(request).toString(), client);
 	}
 }
 
 private:
 
 alias Alias(alias a) = a;
+
+string stripName(string name)()
+{
+	import std.algorithm : endsWith;
+
+	static if (name.endsWith('_'))
+		return name[0 .. $ - 1];
+	else
+		return name;
+}
+
+template stripNullable(T)
+{
+	static if (is(T == Nullable!V, V))
+		alias stripNullable = V;
+	else
+		alias stripNullable = T;
+}
+
+//TODO: support classes
+//TODO: `required` fields
+//TODO: `asString` fields
+JSONValue convert(T)(T value)
+{
+	import std.traits : isSomeFunction;
+
+	alias Type = stripNullable!T;
+
+	JSONValue[string] ret;
+
+	foreach (field_name; __traits(allMembers, Type)) {
+		alias Field = Alias!(__traits(getMember, Type, field_name));
+		alias FieldType = typeof(__traits(getMember, Type, field_name));
+		alias FieldN = stripNullable!FieldType;
+
+		static if (!isSomeFunction!FieldType) {
+			static if (__traits(compiles, { if (__traits(getMember, value, field_name).isNull) {} })) {
+				if (__traits(getMember, value, field_name).isNull)
+					continue;
+			}
+			else {
+				if (__traits(getMember, value, field_name) == __traits(getMember, Type.init, field_name))
+					continue;
+			}
+
+			static if (__traits(compiles, { auto v = JSONValue(__traits(getMember, value, field_name)); })) {
+				ret[stripName!field_name] = JSONValue(__traits(getMember, value, field_name));
+			}
+			else static if (is(FieldN == struct)) {
+				ret[stripName!field_name] = convert(__traits(getMember, value, field_name));
+			}
+			else
+				static assert(false, FieldN.stringof ~ " not supported");
+		}
+	}
+
+	return JSONValue(ret);
+}
