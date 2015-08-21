@@ -13,6 +13,15 @@ private {
 	import std.typecons : Nullable;
 }
 
+/// Convenience function for GCMessage!Data
+auto gcmessage(T = JSONValue)(string to, T data = T.init)
+{
+	GCMessage!T ret;
+	ret.to = to;
+	ret.data = data;
+	return ret;
+}
+
 enum GCMPriority
 {
 	normal = "normal",
