@@ -19,7 +19,7 @@ enum GCMPriority
 	high = "high"
 }
 
-struct GCMessage
+struct GCMessage(Data = JSONValue)
 {
 	/// This parameter specifies the recipient of a message.
 	string to;
@@ -55,7 +55,7 @@ struct GCMessage
 	Nullable!GCMNotification notification;
 
 	/// This parameter specifies the key-value pairs of the message's payload.
-	JSONValue data;
+	Data data;
 }
 
 struct GCMNotification
@@ -110,7 +110,7 @@ class GCM
 		m_key = key;
 	}
 
-	void send(GCMessage message)
+	void send(T)(GCMessage!T message)
 	{
 		import std.net.curl;
 
