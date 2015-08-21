@@ -153,7 +153,7 @@ template stripNullable(T)
 //TODO: `asString` fields
 JSONValue convert(T)(T value)
 {
-	import std.traits : isSomeFunction;
+	import std.traits : isSomeFunction, isTypeTuple;
 
 	alias Type = stripNullable!T;
 
@@ -161,10 +161,11 @@ JSONValue convert(T)(T value)
 
 	foreach (field_name; __traits(allMembers, Type)) {
 		alias Field = Alias!(__traits(getMember, Type, field_name));
-		alias FieldType = typeof(__traits(getMember, Type, field_name));
-		alias FieldN = stripNullable!FieldType;
 
-		static if (!isSomeFunction!FieldType) {
+		static if (!isTypeTuple!Field && !isSomeFunction!Field) {
+			alias FieldType = typeof(__traits(getMember, Type, field_name));
+			alias FieldN = stripNullable!FieldType;
+
 			static if (__traits(compiles, { if (__traits(getMember, value, field_name).isNull) {} })) {
 				if (__traits(getMember, value, field_name).isNull)
 					continue;
