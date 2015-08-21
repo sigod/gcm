@@ -148,6 +148,12 @@ template stripNullable(T)
 		alias stripNullable = T;
 }
 
+template isISOExtStringSerializable(T)
+{
+	enum bool isISOExtStringSerializable =
+		is(typeof(T.init.toISOExtString()) == string) && is(typeof(T.fromISOExtString("")) == T);
+}
+
 //TODO: support classes
 //TODO: `required` fields
 //TODO: `asString` fields
@@ -177,6 +183,9 @@ JSONValue convert(T)(T value)
 
 			static if (__traits(compiles, { auto v = JSONValue(__traits(getMember, value, field_name)); })) {
 				ret[stripName!field_name] = JSONValue(__traits(getMember, value, field_name));
+			}
+			else static if (isISOExtStringSerializable!FieldN) {
+				ret[stripName!field_name] = __traits(getMember, value, field_name).toISOExtString();
 			}
 			else static if (is(FieldN == struct)) {
 				ret[stripName!field_name] = convert(__traits(getMember, value, field_name));
