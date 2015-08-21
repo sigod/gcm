@@ -19,7 +19,7 @@ enum GCMPriority
 	high = "high"
 }
 
-struct GCMRequest
+struct GCMessage
 {
 	/// This parameter specifies the recipient of a message.
 	string to;
@@ -110,7 +110,7 @@ class GCM
 		m_key = key;
 	}
 
-	void send(GCMRequest request)
+	void send(GCMessage message)
 	{
 		import std.net.curl;
 
@@ -122,7 +122,7 @@ class GCM
 		client.addRequestHeader("Content-Type", "application/json");
 		client.addRequestHeader("Authorization", "key=" ~ m_key);
 
-		post("https://gcm-http.googleapis.com/gcm/send", convert(request).toString(), client);
+		post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
 	}
 }
 
