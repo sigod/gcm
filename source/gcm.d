@@ -110,6 +110,27 @@ struct GCMNotification
 	string[] title_loc_args;
 }
 
+///
+struct GCMResponseResult
+{
+	string message_id;
+	string registration_id;
+	string error;
+}
+
+///
+struct GCMResponse
+{
+	string message_id;
+	string error;
+
+	long multicast_id;
+	long success;
+	long failure;
+	long canonical_ids;
+	GCMResponseResult[] results;
+}
+
 class GCM
 {
 	private string m_key;
@@ -119,7 +140,7 @@ class GCM
 		m_key = key;
 	}
 
-	void send(T)(GCMessage!T message)
+	GCMResponse send(T)(GCMessage!T message)
 	{
 		import std.net.curl;
 
@@ -131,7 +152,41 @@ class GCM
 		client.addRequestHeader("Content-Type", "application/json");
 		client.addRequestHeader("Authorization", "key=" ~ m_key);
 
-		post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
+		auto response = post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
+
+		return parse(response);
+	}
+
+	private static GCMResponse parse(char[] response)
+	{
+		auto json = parseJSON(response);
+
+		GCMResponse ret;
+
+		ret.message_id = json.get!string("message_id");
+
+		if (ret.message_id !is null) {
+			ret.error = json.get!string("error");
+		}
+		else {
+			ret.multicast_id = json.get!long("multicast_id");
+			ret.success = json.get!long("success");
+			ret.failure = json.get!long("failure");
+			ret.canonical_ids = json.get!long("canonical_ids");
+
+			auto results  = "results" in json.object;
+			if (results && (*results).type == JSON_TYPE.ARRAY) {
+				ret.results = new GCMResponseResult[(*results).array.length];
+
+				foreach (size_t i, ref result; *results) {
+					ret.results[i].message_id = result.get!string("message_id");
+					ret.results[i].registration_id = result.get!string("registration_id");
+					ret.results[i].error = result.get!string("error");
+				}
+			}
+		}
+
+		return ret;
 	}
 }
 
@@ -205,4 +260,28 @@ JSONValue convert(T)(T value)
 	}
 
 	return JSONValue(ret);
+}
+
+T get(T)(JSONValue json, string name)
+{
+	assert(json.type == JSON_TYPE.OBJECT);
+
+	if (auto value = name in json.object) {
+		static if (is(T == string)) {
+			if ((*value).type == JSON_TYPE.STRING) return (*value).str;
+
+			if ((*value).type == JSON_TYPE.INTEGER) {
+				import std.conv : to;
+
+				return (*value).integer.to!string;
+			}
+		}
+		else static if (is(T == long)) {
+			if ((*value).type == JSON_TYPE.INTEGER) return (*value).integer;
+		}
+		else
+			static assert(false);
+	}
+
+	return T.init;
 }
