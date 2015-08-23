@@ -140,7 +140,7 @@ class GCM
 		m_key = key;
 	}
 
-	GCMResponse send(T)(GCMessage!T message)
+	Nullable!GCMResponse send(T)(GCMessage!T message)
 	{
 		import std.net.curl;
 
@@ -152,9 +152,14 @@ class GCM
 		client.addRequestHeader("Content-Type", "application/json");
 		client.addRequestHeader("Authorization", "key=" ~ m_key);
 
-		auto response = post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
+		try {
+			auto response = post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
 
-		return parse(response);
+			return cast(Nullable!GCMResponse)parse(response);
+		}
+		catch (Exception e) {
+			return Nullable!GCMResponse.init;
+		}
 	}
 
 	private static GCMResponse parse(char[] response)
