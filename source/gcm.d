@@ -137,7 +137,7 @@ class GCM
 
 	this(string key)
 	{
-		assert(key.length);
+		assert(key.length, "API key is required");
 
 		m_key = key;
 	}
@@ -145,10 +145,10 @@ class GCM
 	Nullable!GCMResponse send(T)(GCMessage!T message)
 	in
 	{
-		assert(message.to.length);
+		assert(message.to.length, "to is required");
 
 		if (!message.notification.isNull)
-			assert(message.notification.icon.length);
+			assert(message.notification.icon.length, "notification.icon is required");
 	}
 	body
 	{
@@ -234,7 +234,6 @@ template isISOExtStringSerializable(T)
 }
 
 //TODO: support classes
-//TODO: `required` fields
 //TODO: `asString` fields
 JSONValue convert(T)(T value)
 {
