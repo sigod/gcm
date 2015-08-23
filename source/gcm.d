@@ -158,6 +158,9 @@ class GCM
 			return cast(Nullable!GCMResponse)parse(response);
 		}
 		catch (Exception e) {
+			import std.stdio : stderr;
+			stderr.writeln("[GCM] request failed: ", e);
+
 			return Nullable!GCMResponse.init;
 		}
 	}
