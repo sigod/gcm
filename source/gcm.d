@@ -137,24 +137,39 @@ class GCM
 
 	this(string key)
 	{
+		assert(key.length, "API key is required");
+
 		m_key = key;
 	}
 
-	GCMResponse send(T)(GCMessage!T message)
+	Nullable!GCMResponse send(T)(GCMessage!T message)
+	in
+	{
+		assert(message.to.length, "to is required");
+
+		if (!message.notification.isNull)
+			assert(message.notification.icon.length, "notification.icon is required");
+	}
+	body
 	{
 		import std.net.curl;
 
 		HTTP client = HTTP();
 
-		// Windows issues
-		//client.handle.set(CurlOption.ssl_verifypeer, 0);
-
 		client.addRequestHeader("Content-Type", "application/json");
 		client.addRequestHeader("Authorization", "key=" ~ m_key);
 
-		auto response = post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
+		try {
+			auto response = post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
 
-		return parse(response);
+			return cast(Nullable!GCMResponse)parse(response);
+		}
+		catch (Exception e) {
+			import std.stdio : stderr;
+			stderr.writeln("[GCM] request failed: ", e);
+
+			return Nullable!GCMResponse.init;
+		}
 	}
 
 	private static GCMResponse parse(char[] response)
@@ -219,7 +234,6 @@ template isISOExtStringSerializable(T)
 }
 
 //TODO: support classes
-//TODO: `required` fields
 //TODO: `asString` fields
 JSONValue convert(T)(T value)
 {
