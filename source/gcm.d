@@ -156,9 +156,6 @@ class GCM
 
 		HTTP client = HTTP();
 
-		// Windows issues
-		//client.handle.set(CurlOption.ssl_verifypeer, 0);
-
 		client.addRequestHeader("Content-Type", "application/json");
 		client.addRequestHeader("Authorization", "key=" ~ m_key);
 
