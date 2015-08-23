@@ -137,10 +137,20 @@ class GCM
 
 	this(string key)
 	{
+		assert(key.length);
+
 		m_key = key;
 	}
 
 	Nullable!GCMResponse send(T)(GCMessage!T message)
+	in
+	{
+		assert(message.to.length);
+
+		if (!message.notification.isNull)
+			assert(message.notification.icon.length);
+	}
+	body
 	{
 		import std.net.curl;
 
