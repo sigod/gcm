@@ -101,12 +101,14 @@ struct GCMNotification
 	string body_loc_key;
 
 	/// Indicates the string value to replace format specifiers in body string for localization.
+	@asString
 	string[] body_loc_args;
 
 	/// Indicates the key to the title string for localization.
 	string title_loc_key;
 
 	/// Indicates the string value to replace format specifiers in title string for localization.
+	@asString
 	string[] title_loc_args;
 }
 
@@ -205,6 +207,9 @@ class GCM
 	}
 }
 
+///
+enum asString;
+
 private:
 
 alias Alias(alias a) = a;
@@ -233,8 +238,20 @@ template isISOExtStringSerializable(T)
 		is(typeof(T.init.toISOExtString()) == string) && is(typeof(T.fromISOExtString("")) == T);
 }
 
+static if (__VERSION__ < 2068) {
+	//TODO: remove in future versions of compiler
+	template hasUDA(alias symbol, alias attribute)
+	{
+		import std.typetuple : staticIndexOf;
+
+		enum bool hasUDA = staticIndexOf!(attribute, __traits(getAttributes, symbol)) != -1;
+	}
+}
+else {
+	import std.traits : hasUDA;
+}
+
 //TODO: support classes
-//TODO: `asString` fields
 JSONValue convert(T)(T value)
 {
 	import std.traits : isSomeFunction, isTypeTuple;
@@ -259,17 +276,25 @@ JSONValue convert(T)(T value)
 					continue;
 			}
 
+			JSONValue json = void;
+
 			static if (__traits(compiles, { auto v = JSONValue(__traits(getMember, value, field_name)); })) {
-				ret[stripName!field_name] = JSONValue(__traits(getMember, value, field_name));
+				json = JSONValue(__traits(getMember, value, field_name));
 			}
 			else static if (isISOExtStringSerializable!FieldN) {
-				ret[stripName!field_name] = __traits(getMember, value, field_name).toISOExtString();
+				json = __traits(getMember, value, field_name).toISOExtString();
 			}
 			else static if (is(FieldN == struct)) {
-				ret[stripName!field_name] = convert(__traits(getMember, value, field_name));
+				json = convert(__traits(getMember, value, field_name));
 			}
 			else
 				static assert(false, FieldN.stringof ~ " not supported");
+
+			static if (hasUDA!(Field, asString)) {
+				json = JSONValue(json.toString());
+			}
+
+			ret[stripName!field_name] = json;
 		}
 	}
 
