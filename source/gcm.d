@@ -238,6 +238,19 @@ template isISOExtStringSerializable(T)
 		is(typeof(T.init.toISOExtString()) == string) && is(typeof(T.fromISOExtString("")) == T);
 }
 
+static if (__VERSION__ < 2068) {
+	//TODO: remove in future versions of compiler
+	template hasUDA(alias symbol, alias attribute)
+	{
+		import std.typetuple : staticIndexOf;
+
+		enum bool hasUDA = staticIndexOf!(attribute, __traits(getAttributes, symbol)) != -1;
+	}
+}
+else {
+	import std.traits : hasUDA;
+}
+
 //TODO: support classes
 JSONValue convert(T)(T value)
 {
@@ -277,10 +290,7 @@ JSONValue convert(T)(T value)
 			else
 				static assert(false, FieldN.stringof ~ " not supported");
 
-			//TODO: use hasUDA from 2.068
-			static if (__traits(getAttributes, __traits(getMember, value, field_name)).length > 0
-				&& __traits(isSame, __traits(getAttributes, __traits(getMember, value, field_name))[0], asString))
-			{
+			static if (hasUDA!(Field, asString)) {
 				json = JSONValue(json.toString());
 			}
 
