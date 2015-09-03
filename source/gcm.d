@@ -133,6 +133,42 @@ struct GCMResponse
 	GCMResponseResult[] results;
 }
 
+///
+struct DeviceGroup
+{
+	string api_key;
+	string sender_id;
+	string notification_key_name;
+	string notification_key;
+}
+
+/// Functions for managing device groups
+bool create(ref DeviceGroup group, string[] registration_ids)
+{
+	if (auto response = groupOperation(group, "create", registration_ids)) {
+		auto json = response.parseJSON();
+
+		if (auto key = "notification_key" in json.object) {
+			group.notification_key = (*key).str();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/// ditto
+bool add(DeviceGroup group, string[] registration_ids)
+{
+	return groupOperation(group, "add", registration_ids) !is null;
+}
+
+/// ditto
+bool remove(DeviceGroup group, string[] registration_ids)
+{
+	return groupOperation(group, "remove", registration_ids) !is null;
+}
+
 class GCM
 {
 	private string m_key;
@@ -211,6 +247,43 @@ class GCM
 enum asString;
 
 private:
+
+import std.net.curl;
+
+char[] groupOperation(DeviceGroup group, string operation, string[] registration_ids)
+{
+	assert(registration_ids.length);
+
+	static struct Request
+	{
+		string operation;
+		string notification_key_name;
+		string notification_key;
+		string[] registration_ids;
+	}
+
+	Request request = void;
+	request.operation = operation;
+	request.notification_key_name = group.notification_key_name;
+	if (operation != "create") request.notification_key = group.notification_key;
+	request.registration_ids = registration_ids;
+
+	HTTP client = HTTP();
+
+	client.addRequestHeader("Content-Type", "application/json");
+	client.addRequestHeader("Authorization", "key=" ~ group.api_key);
+	client.addRequestHeader("project_id", group.sender_id);
+
+	try {
+		return post("https://android.googleapis.com/gcm/notification", convert(request).toString(), client);
+	}
+	catch (Exception e) {
+		import std.stdio : stderr;
+		stderr.writeln("[GCM] request failed: ", e);
+
+		return null;
+	}
+}
 
 alias Alias(alias a) = a;
 
