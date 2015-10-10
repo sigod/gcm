@@ -10,6 +10,7 @@ module gcm;
 private {
 	import core.time : weeks;
 	import std.json;
+	import std.range : isInputRange, ElementType;
 	import std.typecons : Nullable;
 }
 
@@ -212,6 +213,45 @@ Nullable!TopicMessageResponse sendTopic(T)(string key, string topic, GCMessage!T
 	}
 
 	return Nullable!TopicMessageResponse.init;
+}
+
+struct MulticastMessageResponse
+{
+	long multicast_id;
+	short success;
+	short failure;
+	short canonical_ids;
+	MulticastMessageResult[] results;
+}
+
+struct MulticastMessageResult
+{
+	string message_id;
+	string registration_id;
+	string error;
+}
+
+Nullable!MulticastMessageResponse sendMulticast(T, Range)(string key, Range registration_ids, GCMessage!T message)
+	if (isInputRange!Range && is(ElementType!Range : const(char)[]))
+{
+	import std.array : array;
+	auto ids = registration_ids.array;
+
+	assert(ids.length <= 1000, "number of registration_ids currently limited to 1000, see #2");
+
+	//TODO: mark `registration_ids` as `package`
+	message.registration_ids = ids;
+
+	string _null = null;
+
+	if (auto response = send(key, _null, message)) {
+		MulticastMessageResponse ret;
+
+		if (response.parse(ret))
+			return cast(Nullable!MulticastMessageResponse)ret;
+	}
+
+	return Nullable!MulticastMessageResponse.init;
 }
 
 class GCM
