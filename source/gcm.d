@@ -442,7 +442,7 @@ T parse(T)(JSONValue json)
 
 	assert(json.type == JSON_TYPE.OBJECT);
 
-	T ret = void;
+	T ret;
 
 	foreach (field_name; __traits(allMembers, T)) {
 		alias FieldType = typeof(__traits(getMember, T, field_name));
