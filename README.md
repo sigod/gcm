@@ -1,5 +1,7 @@
 # gcm
 
+[![Build Status](https://travis-ci.org/sigod/gcm.svg?branch=master)](https://travis-ci.org/sigod/gcm)
+
 Google Cloud Messaging (GCM) for D
 
 ## Usage
