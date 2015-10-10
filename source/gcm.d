@@ -250,6 +250,27 @@ private:
 
 import std.net.curl;
 
+char[] send(T)(string key, string to, GCMessage!T message)
+{
+	HTTP client = HTTP();
+
+	client.addRequestHeader("Content-Type", "application/json");
+	client.addRequestHeader("Authorization", "key=" ~ key);
+
+	//TODO: mark `to` in GCMessage as `package`
+	message.to = to;
+
+	try {
+		return post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
+	}
+	catch (Exception e) {
+		import std.stdio : stderr;
+		stderr.writeln("[GCM] request failed: ", e);
+
+		return null;
+	}
+}
+
 char[] groupOperation(DeviceGroup group, string operation, string[] registration_ids)
 {
 	assert(registration_ids.length);
