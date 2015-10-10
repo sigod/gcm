@@ -374,6 +374,77 @@ JSONValue convert(T)(T value)
 	return JSONValue(ret);
 }
 
+bool parse(T)(string response, out T ret)
+{
+	try {
+		ret = response.parseJSON.parse!T;
+
+		return true;
+	}
+	catch (JSONException e) {
+		import std.stdio : stderr;
+		stderr.writeln("[GCM] parsing failed: ", e);
+
+		return false;
+	}
+}
+
+T parse(T)(JSONValue json)
+{
+	import std.array : array;
+	import std.algorithm : map;
+	import std.traits : isIntegral;
+
+	assert(json.type == JSON_TYPE.OBJECT);
+
+	T ret = void;
+
+	foreach (field_name; __traits(allMembers, T)) {
+		alias FieldType = typeof(__traits(getMember, T, field_name));
+
+		if (auto field = field_name in json.object) {
+			static if (isIntegral!FieldType) {
+				if ((*field).type == JSON_TYPE.INTEGER)
+					__traits(getMember, ret, field_name) = cast(FieldType)(*field).integer;
+			}
+			else static if (is(FieldType == string)) {
+				if ((*field).type == JSON_TYPE.STRING)
+					__traits(getMember, ret, field_name) = (*field).str;
+			}
+			else static if (is(FieldType == E[], E)) {
+				if ((*field).type == JSON_TYPE.ARRAY) {
+					static if (is(E == string))
+						__traits(getMember, ret, field_name) = (*field).array.map!(e => e.str).array;
+					else static if (is(E == struct))
+						__traits(getMember, ret, field_name) = (*field).array.map!(e => e.parse!E).array;
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
+unittest {
+	static struct Inner
+	{
+		int field0;
+	}
+	static struct Outer
+	{
+		int field0;
+		Inner[] field1;
+	}
+
+	auto r = `{"field0":3, "field1":[{"field0":0}, {"field0":1}, {"field0":2}]}`;
+	auto expected = Outer(3, [Inner(0), Inner(1), Inner(2)]);
+
+	Outer result;
+	assert(r.parse(result));
+
+	assert(result == expected);
+}
+
 T get(T)(JSONValue json, string name)
 {
 	assert(json.type == JSON_TYPE.OBJECT);
