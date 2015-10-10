@@ -419,7 +419,7 @@ JSONValue convert(T)(T value)
 	return JSONValue(ret);
 }
 
-bool parse(T)(string response, out T ret)
+bool parse(T)(in char[] response, out T ret)
 {
 	try {
 		ret = response.parseJSON.parse!T;
