@@ -193,6 +193,27 @@ Nullable!DeviceGroupResponse sendGroup(T)(string key, string to, GCMessage!T mes
 	return Nullable!DeviceGroupResponse.init;
 }
 
+struct TopicMessageResponse
+{
+	long message_id;
+	string error;
+}
+
+Nullable!TopicMessageResponse sendTopic(T)(string key, string topic, GCMessage!T message)
+{
+	import std.algorithm : startsWith;
+	assert(topic.startsWith("/topics/"), "all topics must start with '/topics/'");
+
+	if (auto response = send(key, topic, message)) {
+		TopicMessageResponse ret;
+
+		if (response.parse(ret))
+			return cast(Nullable!TopicMessageResponse)ret;
+	}
+
+	return Nullable!TopicMessageResponse.init;
+}
+
 class GCM
 {
 	private string m_key;
