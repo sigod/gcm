@@ -169,6 +169,30 @@ bool remove(DeviceGroup group, string[] registration_ids)
 	return groupOperation(group, "remove", registration_ids) !is null;
 }
 
+struct DeviceGroupResponse
+{
+	byte success;
+	byte failure;
+	string[] failed_registration_ids;
+}
+
+Nullable!DeviceGroupResponse sendGroup(T)(DeviceGroup group, GCMessage!T message)
+{
+	return sendGroup(group.api_key, group.notification_key, message);
+}
+
+Nullable!DeviceGroupResponse sendGroup(T)(string key, string to, GCMessage!T message)
+{
+	if (auto response = send(key, to, message)) {
+		DeviceGroupResponse ret;
+
+		if (response.parse(ret))
+			return cast(Nullable!DeviceGroupResponse)ret;
+	}
+
+	return Nullable!DeviceGroupResponse.init;
+}
+
 class GCM
 {
 	private string m_key;
@@ -444,6 +468,16 @@ T parse(T)(JSONValue json)
 	}
 
 	return ret;
+}
+
+unittest {
+	auto r = `{"success":1, "failure":2, "failed_registration_ids":["regId1", "regId2"]}`;
+	auto expected = DeviceGroupResponse(1, 2, ["regId1", "regId2"]);
+
+	DeviceGroupResponse result;
+	assert(r.parse!DeviceGroupResponse(result));
+
+	assert(result == expected);
 }
 
 unittest {
