@@ -142,6 +142,16 @@ struct GCMResponse
 	GCMResponseResult[] results;
 }
 
+/**
+ * Wrapper around `sendMulticast` since GCM's answers inconsistent
+ * for direct messages. Sometimes you get plain text instead of JSON.
+ */
+Nullable!MulticastMessageResponse sendDirect(T)(string key, string receiver, GCMessage!T message)
+{
+	//TODO: convert into proper *MessageResponce?
+	return sendMulticast(key, [receiver], message);
+}
+
 ///
 struct DeviceGroup
 {
