@@ -15,10 +15,18 @@ private {
 }
 
 /// Convenience function for GCMessage!Data
-auto gcmessage(T = JSONValue)(string to, T data = T.init)
+auto gcmessage(T = JSONValue)(T data = T.init)
 {
 	GCMessage!T ret;
-	ret.to = to;
+	ret.data = data;
+	return ret;
+}
+
+/// ditto
+auto gcmessage(T = JSONValue)(GCMNotification ntf, T data = T.init)
+{
+	GCMessage!T ret;
+	ret.notification = ntf;
 	ret.data = data;
 	return ret;
 }
@@ -32,10 +40,10 @@ enum GCMPriority
 struct GCMessage(Data = JSONValue)
 {
 	/// This parameter specifies the recipient of a message.
-	string to;
+	package string to;
 
 	/// This parameter specifies a list of devices (registration tokens, or IDs) receiving a multicast message.
-	string[] registration_ids;
+	package string[] registration_ids;
 
 	/// This parameter identifies a group of messages that can be collapsed.
 	string collapse_key;
@@ -235,11 +243,11 @@ Nullable!MulticastMessageResponse sendMulticast(T, Range)(string key, Range regi
 	if (isInputRange!Range && is(ElementType!Range : const(char)[]))
 {
 	import std.array : array;
+	//TODO: some way to avoid allocation?
 	auto ids = registration_ids.array;
 
 	assert(ids.length <= 1000, "number of registration_ids currently limited to 1000, see #2");
 
-	//TODO: mark `registration_ids` as `package`
 	message.registration_ids = ids;
 
 	string _null = null;
@@ -268,7 +276,6 @@ char[] send(T)(string key, string to, GCMessage!T message)
 	client.addRequestHeader("Content-Type", "application/json");
 	client.addRequestHeader("Authorization", "key=" ~ key);
 
-	//TODO: mark `to` in GCMessage as `package`
 	message.to = to;
 
 	try {
