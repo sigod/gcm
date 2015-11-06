@@ -43,7 +43,7 @@ struct GCMessage(Data = JSONValue)
 	package string to;
 
 	/// This parameter specifies a list of devices (registration tokens, or IDs) receiving a multicast message.
-	package string[] registration_ids;
+	package const(string)[] registration_ids;
 
 	/// This parameter identifies a group of messages that can be collapsed.
 	string collapse_key;
