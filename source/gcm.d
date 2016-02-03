@@ -1,7 +1,7 @@
 /**
 	Google Cloud Messaging (GCM) for D
 
-	Copyright: © 2015 sigod
+	Copyright: © 2016 sigod
 	License: Subject to the terms of the MIT license, as written in the included LICENSE file.
 	Authors: sigod
 */
@@ -14,20 +14,19 @@ private {
 	import std.typecons : Nullable;
 }
 
-/// Convenience function for GCMessage!Data
-auto gcmessage(T = JSONValue)(T data = T.init)
+/// Convenience function for GCMessage. Converts T to JSONValue.
+GCMessage gcmessage(T = JSONValue)(T data = T.init)
 {
-	GCMessage!T ret;
-	ret.data = data;
+	GCMessage ret;
+	ret.data = convert(data);
 	return ret;
 }
-
 /// ditto
-auto gcmessage(T = JSONValue)(GCMNotification ntf, T data = T.init)
+GCMessage gcmessage(T = JSONValue)(GCMNotification ntf, T data = T.init)
 {
-	GCMessage!T ret;
+	GCMessage ret;
 	ret.notification = ntf;
-	ret.data = data;
+	ret.data = convert(data);
 	return ret;
 }
 
@@ -37,7 +36,7 @@ enum GCMPriority
 	high = "high"
 }
 
-struct GCMessage(Data = JSONValue)
+struct GCMessage
 {
 	/// This parameter specifies the recipient of a message.
 	package string to;
@@ -73,7 +72,7 @@ struct GCMessage(Data = JSONValue)
 	Nullable!GCMNotification notification;
 
 	/// This parameter specifies the key-value pairs of the message's payload.
-	Data data;
+	JSONValue data;
 }
 
 struct GCMNotification
@@ -146,7 +145,7 @@ struct GCMResponse
  * Wrapper around `sendMulticast` since GCM's answers inconsistent
  * for direct messages. Sometimes you get plain text instead of JSON.
  */
-Nullable!MulticastMessageResponse sendDirect(T)(string key, string receiver, GCMessage!T message)
+Nullable!MulticastMessageResponse sendDirect(string key, string receiver, GCMessage message)
 {
 	//TODO: convert into proper *MessageResponce?
 	return sendMulticast(key, [receiver], message);
@@ -195,12 +194,12 @@ struct DeviceGroupResponse
 	string[] failed_registration_ids;
 }
 
-Nullable!DeviceGroupResponse sendGroup(T)(DeviceGroup group, GCMessage!T message)
+Nullable!DeviceGroupResponse sendGroup(DeviceGroup group, GCMessage message)
 {
 	return sendGroup(group.api_key, group.notification_key, message);
 }
 
-Nullable!DeviceGroupResponse sendGroup(T)(string key, string to, GCMessage!T message)
+Nullable!DeviceGroupResponse sendGroup(string key, string to, GCMessage message)
 {
 	if (auto response = send(key, to, message)) {
 		DeviceGroupResponse ret;
@@ -218,7 +217,7 @@ struct TopicMessageResponse
 	string error;
 }
 
-Nullable!TopicMessageResponse sendTopic(T)(string key, string topic, GCMessage!T message)
+Nullable!TopicMessageResponse sendTopic(string key, string topic, GCMessage message)
 {
 	import std.algorithm : startsWith;
 	assert(topic.startsWith("/topics/"), "all topics must start with '/topics/'");
@@ -249,7 +248,7 @@ struct MulticastMessageResult
 	string error;
 }
 
-Nullable!MulticastMessageResponse sendMulticast(T, Range)(string key, Range registration_ids, GCMessage!T message)
+Nullable!MulticastMessageResponse sendMulticast(Range)(string key, Range registration_ids, GCMessage message)
 	if (isInputRange!Range && is(ElementType!Range : const(char)[]))
 {
 	import std.array : array;
@@ -279,7 +278,7 @@ private:
 
 import std.net.curl;
 
-char[] send(T)(string key, string to, GCMessage!T message)
+char[] send(string key, string to, GCMessage message)
 {
 	HTTP client = HTTP();
 

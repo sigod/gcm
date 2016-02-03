@@ -2,7 +2,7 @@
 	"name": "gcm",
 	"description": "Google Cloud Messaging (GCM) for D",
 	"homepage": "https://github.com/sigod/gcm",
-	"copyright": "Copyright © 2015, sigod",
+	"copyright": "Copyright © 2016, sigod",
 	"license": "MIT",
 	"authors": ["sigod"],
 	"libs": ["curl"],
