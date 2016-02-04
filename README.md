@@ -12,16 +12,15 @@ import gcm;
 
 void main()
 {
-	auto gcm = new GCM("api key here");
+	immutable GCM_KEY = ".. key ..";
 
 	// simple
 	{
-		auto message = gcmessage("/topics/test");
-		message.data = ["message": "This is a GCM Topic Message!"];
+		auto message = gcmessage(["message": "This is a GCM Topic Message!"]);
 		message.dry_run = true;
-		auto response = gcm.send(message);
 
-		assert(response.message_id == "-1");
+		auto response = GCM_KEY.sendTopic("/topics/test", message);
+		assert(response.message_id == -1);
 	}
 
 	// user defined data types
@@ -31,13 +30,11 @@ void main()
 			string message;
 		}
 
-		auto custom_data = CustomData("This is a GCM Topic Message!");
-
-		auto message = gcmessage("/topics/test", custom_data);
+		auto message = gcmessage(CustomData("This is a GCM Topic Message!"));
 		message.dry_run = true;
-		auto response = gcm.send(message);
 
-		assert(response.message_id == "-1");
+		auto response = GCM_KEY.sendTopic("/topics/test", message);
+		assert(response.message_id == -1);
 	}
 }
 ```
