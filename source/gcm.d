@@ -38,12 +38,6 @@ enum GCMPriority
 
 struct GCMessage
 {
-	/// This parameter specifies the recipient of a message.
-	package string to;
-
-	/// This parameter specifies a list of devices (registration tokens, or IDs) receiving a multicast message.
-	package const(string)[] registration_ids;
-
 	/// This parameter identifies a group of messages that can be collapsed.
 	string collapse_key;
 
@@ -201,7 +195,9 @@ Nullable!DeviceGroupResponse sendGroup(DeviceGroup group, GCMessage message)
 
 Nullable!DeviceGroupResponse sendGroup(string key, string to, GCMessage message)
 {
-	if (auto response = send(key, to, message)) {
+	auto request = finalMessage(message, to);
+
+	if (auto response = send(key, request)) {
 		DeviceGroupResponse ret;
 
 		if (response.parse(ret))
@@ -222,7 +218,9 @@ Nullable!TopicMessageResponse sendTopic(string key, string topic, GCMessage mess
 	import std.algorithm : startsWith;
 	assert(topic.startsWith("/topics/"), "all topics must start with '/topics/'");
 
-	if (auto response = send(key, topic, message)) {
+	auto request = finalMessage(message, topic);
+
+	if (auto response = send(key, request)) {
 		TopicMessageResponse ret;
 
 		if (response.parse(ret))
@@ -251,17 +249,11 @@ struct MulticastMessageResult
 Nullable!MulticastMessageResponse sendMulticast(Range)(string key, Range registration_ids, GCMessage message)
 	if (isInputRange!Range && is(ElementType!Range : const(char)[]))
 {
-	import std.array : array;
-	//TODO: some way to avoid allocation?
-	auto ids = registration_ids.array;
+	//assert(ids.length <= 1000, "number of registration_ids currently limited to 1000, see #2");
 
-	assert(ids.length <= 1000, "number of registration_ids currently limited to 1000, see #2");
+	auto request = finalMessage(message, registration_ids);
 
-	message.registration_ids = ids;
-
-	string _null = null;
-
-	if (auto response = send(key, _null, message)) {
+	if (auto response = send(key, request)) {
 		MulticastMessageResponse ret;
 
 		if (response.parse(ret))
@@ -278,17 +270,33 @@ private:
 
 import std.net.curl;
 
-char[] send(string key, string to, GCMessage message)
+string finalMessage(in GCMessage message, in char[] to)
+{
+	auto json = convert(message);
+	json["to"] = to;
+	return json.toString();
+}
+
+string finalMessage(Range)(in GCMessage message, Range ids)
+{
+	import std.algorithm : map;
+	import std.array : array;
+
+	auto json = convert(message);
+	// this way JSONValue will use provided array instead of allocating new one
+	json["registration_ids"] = ids.map!(e => JSONValue(e)).array;
+	return json.toString();
+}
+
+char[] send(string key, in char[] message)
 {
 	HTTP client = HTTP();
 
 	client.addRequestHeader("Content-Type", "application/json");
 	client.addRequestHeader("Authorization", "key=" ~ key);
 
-	message.to = to;
-
 	try {
-		return post("https://gcm-http.googleapis.com/gcm/send", convert(message).toString(), client);
+		return post("https://gcm-http.googleapis.com/gcm/send", message, client);
 	}
 	catch (Exception e) {
 		import std.stdio : stderr;
