@@ -380,54 +380,114 @@ else {
 	import std.traits : hasUDA;
 }
 
-//TODO: support classes
 JSONValue convert(T)(T value)
 {
-	import std.traits : isSomeFunction, isTypeTuple;
+	import std.algorithm : each, map;
+	import std.array : array;
+	import std.conv : to;
+	import std.traits : /*hasUDA,*/ isAssociativeArray, isSomeFunction;
 
 	alias Type = stripNullable!T;
 
-	JSONValue[string] ret;
-
-	foreach (field_name; __traits(allMembers, Type)) {
-		alias Field = Alias!(__traits(getMember, Type, field_name));
-
-		static if (!isTypeTuple!Field && !isSomeFunction!Field) {
-			alias FieldType = typeof(__traits(getMember, Type, field_name));
-			alias FieldN = stripNullable!FieldType;
-
-			static if (__traits(compiles, { if (__traits(getMember, value, field_name).isNull) {} })) {
-				if (__traits(getMember, value, field_name).isNull)
-					continue;
-			}
-			else {
-				if (__traits(getMember, value, field_name) == __traits(getMember, Type.init, field_name))
-					continue;
-			}
-
-			JSONValue json = void;
-
-			static if (__traits(compiles, { auto v = JSONValue(__traits(getMember, value, field_name)); })) {
-				json = JSONValue(__traits(getMember, value, field_name));
-			}
-			else static if (isISOExtStringSerializable!FieldN) {
-				json = __traits(getMember, value, field_name).toISOExtString();
-			}
-			else static if (is(FieldN == struct)) {
-				json = convert(__traits(getMember, value, field_name));
-			}
-			else
-				static assert(false, FieldN.stringof ~ " not supported");
-
-			static if (hasUDA!(Field, asString)) {
-				json = JSONValue(json.toString());
-			}
-
-			ret[stripName!field_name] = json;
-		}
+	static if (is(T == Nullable!Type)) {
+		if (value.isNull) return JSONValue(null);
+	}
+	else static if (is(T == class)) {
+		if (value is null) return JSONValue(null);
 	}
 
-	return JSONValue(ret);
+	static if (is(Type == JSONValue)) {
+		return value;
+	}
+	else static if (is(typeof(JSONValue(value)))) {
+		return JSONValue(value);
+	}
+	else static if (isISOExtStringSerializable!Type) {
+		return JSONValue(value.toISOExtString());
+	}
+	else static if (isInputRange!Type) {
+		return JSONValue(value.map!(e => convert(e)).array);
+	}
+	else static if (isAssociativeArray!Type) {
+		JSONValue[string] object;
+
+		value.byKeyValue().each!((pair) {
+			object[pair.key.to!string] = convert(pair.value);
+		});
+
+		return JSONValue(object);
+	}
+	else static if (is(Type == struct) || is(Type == class)) {
+		JSONValue[string] object;
+
+		foreach (field_name; __traits(derivedMembers, Type)) {
+			alias FieldType = typeof(__traits(getMember, value, field_name));
+
+			//TODO: support getters?
+			static if (!isSomeFunction!FieldType) {
+				auto field = convert(__traits(getMember, value, field_name));
+
+				static if (hasUDA!(__traits(getMember, Type, field_name), asString))
+					field = JSONValue(field.toString());
+
+				object[stripName!field_name] = field;
+			}
+		}
+
+		return JSONValue(object);
+	}
+	else
+		static assert(false, Type.stringof ~ " not supported");
+}
+
+unittest
+{
+	assert(convert(Nullable!int.init) == parseJSON(`null`));
+	assert(convert(Nullable!int(42)) == parseJSON(`42`));
+
+	assert(convert(42) == parseJSON(`42`));
+	assert(convert("42") == parseJSON(`"42"`));
+	assert(convert(4.2) == parseJSON(`4.2`));
+}
+
+unittest
+{
+	import std.datetime : SysTime;
+	assert(convert(SysTime.fromUnixTime(0)).toString() == `"1970-01-01T03:00:00"`);
+}
+
+unittest
+{
+	import std.algorithm : map;
+	assert(convert([1, 2, 3].map!(e => e*3)) == parseJSON(`[3,6,9]`));
+}
+
+unittest
+{
+	assert(convert([1:2, 2:4, 3:6]) == parseJSON(`{"1":2,"2":4,"3":6}`));
+}
+
+unittest
+{
+	static struct Inner
+	{
+		int a;
+	}
+	static struct S
+	{
+		Inner inner;
+	}
+	assert(convert(S(Inner(42))) == parseJSON(`{"inner":{"a":42}}`));
+}
+
+unittest
+{
+	static class C
+	{
+		int a;
+		this(int v) { a = v; }
+	}
+	assert(convert(new C(42)) == parseJSON(`{"a":42}`));
 }
 
 bool parse(T)(in char[] response, out T ret)
