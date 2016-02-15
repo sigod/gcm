@@ -575,27 +575,3 @@ unittest
 	}
 	assert(parseJSON(`{"in":1}`).parse!S.in_ == 1);
 }
-
-T get(T)(JSONValue json, string name)
-{
-	assert(json.type == JSON_TYPE.OBJECT);
-
-	if (auto value = name in json.object) {
-		static if (is(T == string)) {
-			if ((*value).type == JSON_TYPE.STRING) return (*value).str;
-
-			if ((*value).type == JSON_TYPE.INTEGER) {
-				import std.conv : to;
-
-				return (*value).integer.to!string;
-			}
-		}
-		else static if (is(T == long)) {
-			if ((*value).type == JSON_TYPE.INTEGER) return (*value).integer;
-		}
-		else
-			static assert(false);
-	}
-
-	return T.init;
-}
