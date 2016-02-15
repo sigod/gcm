@@ -452,8 +452,8 @@ unittest
 
 unittest
 {
-	import std.datetime : SysTime;
-	assert(convert(SysTime.fromUnixTime(0).toUTC()).toString() == `"1970-01-01T00:00:00Z"`);
+	import std.datetime : SysTime, UTC;
+	assert(convert(SysTime(0, UTC())).toString() == `"0001-01-01T00:00:00Z"`);
 }
 
 unittest
