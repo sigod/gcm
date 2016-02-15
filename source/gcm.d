@@ -477,6 +477,15 @@ unittest
 	assert(convert(new C(42)) == parseJSON(`{"a":42}`));
 }
 
+unittest
+{
+	static struct S
+	{
+		int in_;
+	}
+	assert(convert(S(1)) == parseJSON(`{"in":1}`));
+}
+
 bool parse(T)(in char[] response, out T ret)
 {
 	try {
@@ -505,7 +514,7 @@ T parse(T)(JSONValue json)
 	foreach (field_name; __traits(allMembers, T)) {
 		alias FieldType = typeof(__traits(getMember, T, field_name));
 
-		if (auto field = field_name in json.object) {
+		if (auto field = stripName!field_name in json.object) {
 			static if (isIntegral!FieldType) {
 				if ((*field).type == JSON_TYPE.INTEGER)
 					__traits(getMember, ret, field_name) = cast(FieldType)(*field).integer;
@@ -556,6 +565,15 @@ unittest {
 	assert(r.parse(result));
 
 	assert(result == expected);
+}
+
+unittest
+{
+	static struct S
+	{
+		int in_;
+	}
+	assert(parseJSON(`{"in":1}`).parse!S.in_ == 1);
 }
 
 T get(T)(JSONValue json, string name)
