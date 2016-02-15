@@ -367,25 +367,12 @@ template isISOExtStringSerializable(T)
 		is(typeof(T.init.toISOExtString()) == string) && is(typeof(T.fromISOExtString("")) == T);
 }
 
-static if (__VERSION__ < 2068) {
-	//TODO: remove in future versions of compiler
-	template hasUDA(alias symbol, alias attribute)
-	{
-		import std.typetuple : staticIndexOf;
-
-		enum bool hasUDA = staticIndexOf!(attribute, __traits(getAttributes, symbol)) != -1;
-	}
-}
-else {
-	import std.traits : hasUDA;
-}
-
 JSONValue convert(T)(T value)
 {
 	import std.algorithm : each, map;
 	import std.array : array;
 	import std.conv : to;
-	import std.traits : /*hasUDA,*/ isAssociativeArray, isSomeFunction;
+	import std.traits : hasUDA, isAssociativeArray, isSomeFunction;
 
 	alias Type = stripNullable!T;
 
