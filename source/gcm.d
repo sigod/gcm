@@ -321,7 +321,7 @@ char[] groupOperation(DeviceGroup group, string operation, string[] registration
 	Request request = void;
 	request.operation = operation;
 	request.notification_key_name = group.notification_key_name;
-	if (operation != "create") request.notification_key = group.notification_key;
+	request.notification_key = operation == "create" ? null : group.notification_key;
 	request.registration_ids = registration_ids;
 
 	HTTP client = HTTP();
