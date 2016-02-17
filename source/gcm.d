@@ -249,8 +249,6 @@ struct MulticastMessageResult
 Nullable!MulticastMessageResponse sendMulticast(Range)(string key, Range registration_ids, GCMessage message)
 	if (isInputRange!Range && is(ElementType!Range : const(char)[]))
 {
-	//assert(ids.length <= 1000, "number of registration_ids currently limited to 1000, see #2");
-
 	auto request = finalMessage(message, registration_ids);
 
 	if (auto response = send(key, request)) {
@@ -285,6 +283,7 @@ string finalMessage(Range)(in GCMessage message, Range ids)
 	auto json = convert(message);
 	// this way JSONValue will use provided array instead of allocating new one
 	json["registration_ids"] = ids.map!(e => JSONValue(e)).array;
+	assert(json["registration_ids"].array.length <= 1000, "number of registration_ids limited to 1000, see #2");
 	return json.toString();
 }
 
